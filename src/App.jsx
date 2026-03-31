@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const emailsLiberados = [
   "vans.s184@gmail.com",
-  "diego@email.com",
+  "cliente1@gmail.com",
   "teste@teste.com",
 ];
 
@@ -30,7 +30,7 @@ export default function App() {
   const [emailLogado, setEmailLogado] = useState(() => localStorage.getItem("app_email") || "");
   const [erroLogin, setErroLogin] = useState("");
 
-  const [nome, setNome] = useState(() => localStorage.getItem("app_nome") || "Cliente");
+  const [nome, setNome] = useState(() => localStorage.getItem("app_nome") || "");
   const [meta, setMeta] = useState(() => Number(localStorage.getItem("app_meta")) || 5000);
 
   const [ganho, setGanho] = useState("");
@@ -89,6 +89,11 @@ export default function App() {
   function entrar() {
     const emailTratado = email.trim().toLowerCase();
 
+    if (!nome.trim()) {
+      setErroLogin("Digite seu nome.");
+      return;
+    }
+
     if (!emailTratado) {
       setErroLogin("Digite seu e-mail.");
       return;
@@ -105,6 +110,8 @@ export default function App() {
 
   function sair() {
     setEmailLogado("");
+    setEmail("");
+    setNome("");
   }
 
   function salvarLancamento() {
@@ -135,7 +142,16 @@ export default function App() {
         <div className="login-card">
           <div className="badge">ENTREGAFÁCIL PRO</div>
           <h1>Tela de acesso</h1>
-          <p>Entre com o e-mail informado na compra.</p>
+          <p>Entre com o nome e o e-mail informado na compra.</p>
+
+          <label>Seu nome</label>
+          <input
+            className="input"
+            type="text"
+            placeholder="Digite seu nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
 
           <label>E-mail da compra</label>
           <input
@@ -162,7 +178,7 @@ export default function App() {
         <div className="hero">
           <div>
             <div className="hero-mini">ENTREGAFÁCIL PRO</div>
-            <h1>Olá, {nome}</h1>
+            <h1>Olá, {nome || "Cliente"}</h1>
             <p>{emailLogado}</p>
           </div>
           <div className="hero-icon">🚗</div>
