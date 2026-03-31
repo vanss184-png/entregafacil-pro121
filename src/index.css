@@ -25,45 +25,6 @@ body {
   margin: 0 auto;
 }
 
-.login-bg {
-  min-height: 100vh;
-  background: linear-gradient(to bottom, #f97316, #fdba74, #fff7ed);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 390px;
-  background: #fff;
-  border-radius: 28px;
-  padding: 24px;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
-}
-
-.login-card h1 {
-  margin: 0 0 8px;
-  font-size: 32px;
-}
-
-.login-card p {
-  color: #64748b;
-  margin-bottom: 16px;
-}
-
-.badge {
-  display: inline-block;
-  background: #fff7ed;
-  color: #ea580c;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-}
-
 .hero {
   background: linear-gradient(135deg, #f97316, #fb923c);
   color: white;
@@ -124,31 +85,6 @@ body {
   margin: 0;
   color: #7c2d12;
   font-size: 14px;
-}
-
-.tabs {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #fed7aa;
-  border-radius: 22px;
-  padding: 8px;
-}
-
-.tab {
-  border: 0;
-  background: transparent;
-  color: #c2410c;
-  border-radius: 16px;
-  padding: 12px 8px;
-  font-weight: 700;
-}
-
-.tab.active {
-  background: #f97316;
-  color: white;
 }
 
 .cards-grid {
@@ -214,7 +150,8 @@ label {
 }
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-danger {
   border: 0;
   border-radius: 18px;
   padding: 14px 16px;
@@ -234,13 +171,128 @@ label {
   border: 1px solid #fed7aa;
 }
 
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  padding: 10px 14px;
+}
+
+.progress-track {
+  height: 12px;
+  border-radius: 999px;
+  background: #ffedd5;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #f97316, #fb923c);
+  border-radius: 999px;
+}
+
+.meta-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mini-chart {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  min-height: 180px;
+  padding-top: 10px;
+}
+
+.mini-chart-item {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.bars {
+  height: 130px;
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.bar {
+  width: 18px;
+  border-radius: 10px 10px 4px 4px;
+}
+
+.bar.ganhos {
+  background: #fb923c;
+}
+
+.bar.gastos {
+  background: #fdba74;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.history-card {
+  background: #fff7ed;
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.history-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.history-date {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.history-sub {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.history-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.mini-box {
+  background: white;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.mini-box span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.mini-box strong {
+  color: #0f172a;
+}
+
 @media (max-width: 520px) {
   .hero h1 {
     font-size: 28px;
-  }
-
-  .cards-grid {
-    grid-template-columns: 1fr 1fr;
   }
 
   .premium-box {
