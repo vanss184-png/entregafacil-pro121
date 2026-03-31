@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
+const emailsLiberados = [
+  "cliente1@gmail.com",
+  "diego@email.com",
+  "teste@teste.com",
+];
+
 const initialEntries = [
   { id: 1, data: "2026-03-25", ganho: 320, gasolina: 90, manutencao: 0, km: 86 },
   { id: 2, data: "2026-03-26", ganho: 280, gasolina: 70, manutencao: 20, km: 74 },
@@ -20,7 +26,11 @@ function formatarData(data) {
 }
 
 export default function App() {
-  const [nome, setNome] = useState(() => localStorage.getItem("app_nome") || "diego");
+  const [email, setEmail] = useState("");
+  const [emailLogado, setEmailLogado] = useState(() => localStorage.getItem("app_email") || "");
+  const [erroLogin, setErroLogin] = useState("");
+
+  const [nome, setNome] = useState(() => localStorage.getItem("app_nome") || "Cliente");
   const [meta, setMeta] = useState(() => Number(localStorage.getItem("app_meta")) || 5000);
 
   const [ganho, setGanho] = useState("");
@@ -46,6 +56,14 @@ export default function App() {
     localStorage.setItem("app_nome", nome);
   }, [nome]);
 
+  useEffect(() => {
+    if (emailLogado) {
+      localStorage.setItem("app_email", emailLogado);
+    } else {
+      localStorage.removeItem("app_email");
+    }
+  }, [emailLogado]);
+
   const enriquecidos = useMemo(() => {
     return lancamentos.map((item) => ({
       ...item,
@@ -67,6 +85,27 @@ export default function App() {
     1,
     ...enriquecidos.flatMap((i) => [Number(i.ganho), Number(i.gasolina) + Number(i.manutencao)])
   );
+
+  function entrar() {
+    const emailTratado = email.trim().toLowerCase();
+
+    if (!emailTratado) {
+      setErroLogin("Digite seu e-mail.");
+      return;
+    }
+
+    if (!emailsLiberados.includes(emailTratado)) {
+      setErroLogin("Acesso não liberado para este e-mail.");
+      return;
+    }
+
+    setEmailLogado(emailTratado);
+    setErroLogin("");
+  }
+
+  function sair() {
+    setEmailLogado("");
+  }
 
   function salvarLancamento() {
     const novo = {
@@ -90,6 +129,33 @@ export default function App() {
     setLancamentos((prev) => prev.filter((item) => item.id !== id));
   }
 
+  if (!emailLogado) {
+    return (
+      <div className="login-bg">
+        <div className="login-card">
+          <div className="badge">ENTREGAFÁCIL PRO</div>
+          <h1>Tela de acesso</h1>
+          <p>Entre com o e-mail informado na compra.</p>
+
+          <label>E-mail da compra</label>
+          <input
+            className="input"
+            type="email"
+            placeholder="seuemail@gmail.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          {erroLogin && <div className="erro-login">{erroLogin}</div>}
+
+          <button className="btn-primary" onClick={entrar}>
+            Entrar no app
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-bg">
       <div className="container">
@@ -97,7 +163,7 @@ export default function App() {
           <div>
             <div className="hero-mini">ENTREGAFÁCIL PRO</div>
             <h1>Olá, {nome}</h1>
-            <p>Controle financeiro premium para entregadores</p>
+            <p>{emailLogado}</p>
           </div>
           <div className="hero-icon">🚗</div>
         </div>
@@ -107,7 +173,9 @@ export default function App() {
             <h2>Versão Premium</h2>
             <p>Gráficos, histórico e dados salvos automático.</p>
           </div>
-          <button className="btn-secondary">Plano ativo</button>
+          <button className="btn-secondary" onClick={sair}>
+            Sair
+          </button>
         </div>
 
         <div className="cards-grid">
@@ -131,6 +199,7 @@ export default function App() {
 
         <div className="panel">
           <h2>Meta mensal</h2>
+
           <label>Nome do usuário</label>
           <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
 
