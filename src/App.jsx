@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 const emailsLiberados = [
-  "cliente1@gmail.com",
+  "vans.s184@gmail.com",
   "diego@email.com",
   "teste@teste.com",
 ];
