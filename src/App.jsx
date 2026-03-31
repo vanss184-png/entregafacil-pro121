@@ -1,38 +1,93 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const initialEntries = [
+  { id: 1, data: "2026-03-25", ganho: 320, gasolina: 90, manutencao: 0, km: 86 },
+  { id: 2, data: "2026-03-26", ganho: 280, gasolina: 70, manutencao: 20, km: 74 },
+  { id: 3, data: "2026-03-27", ganho: 360, gasolina: 95, manutencao: 0, km: 91 },
+];
+
+function moeda(v) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(v || 0));
+}
+
+function formatarData(data) {
+  if (!data) return "";
+  const [y, m, d] = data.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 export default function App() {
-  const [nome, setNome] = useState("diego");
-  const [entrou, setEntrou] = useState(true);
+  const [nome, setNome] = useState(() => localStorage.getItem("app_nome") || "diego");
+  const [meta, setMeta] = useState(() => Number(localStorage.getItem("app_meta")) || 5000);
+
   const [ganho, setGanho] = useState("");
   const [gasolina, setGasolina] = useState("");
   const [manutencao, setManutencao] = useState("");
   const [km, setKm] = useState("");
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
 
-  const lucro = useMemo(() => {
-    return Number(ganho || 0) - Number(gasolina || 0) - Number(manutencao || 0);
-  }, [ganho, gasolina, manutencao]);
+  const [lancamentos, setLancamentos] = useState(() => {
+    const salvo = localStorage.getItem("app_lancamentos");
+    return salvo ? JSON.parse(salvo) : initialEntries;
+  });
 
-  if (!entrou) {
-    return (
-      <div className="login-bg">
-        <div className="login-card">
-          <div className="badge">ENTREGAFÁCIL PRO</div>
-          <h1>Controle suas entregas</h1>
-          <p>Seu app premium para acompanhar ganhos e gastos.</p>
+  useEffect(() => {
+    localStorage.setItem("app_lancamentos", JSON.stringify(lancamentos));
+  }, [lancamentos]);
 
-          <input
-            className="input"
-            placeholder="Seu nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-          />
+  useEffect(() => {
+    localStorage.setItem("app_meta", String(meta));
+  }, [meta]);
 
-          <button className="btn-primary" onClick={() => setEntrou(true)}>
-            Entrar
-          </button>
-        </div>
-      </div>
-    );
+  useEffect(() => {
+    localStorage.setItem("app_nome", nome);
+  }, [nome]);
+
+  const enriquecidos = useMemo(() => {
+    return lancamentos.map((item) => ({
+      ...item,
+      lucro: Number(item.ganho) - Number(item.gasolina) - Number(item.manutencao),
+    }));
+  }, [lancamentos]);
+
+  const totais = useMemo(() => {
+    const ganhos = enriquecidos.reduce((a, i) => a + Number(i.ganho), 0);
+    const gastos = enriquecidos.reduce((a, i) => a + Number(i.gasolina) + Number(i.manutencao), 0);
+    const lucro = enriquecidos.reduce((a, i) => a + Number(i.lucro), 0);
+    const kmRodado = enriquecidos.reduce((a, i) => a + Number(i.km), 0);
+    return { ganhos, gastos, lucro, kmRodado };
+  }, [enriquecidos]);
+
+  const progresso = Math.max(0, Math.min(100, meta ? (totais.lucro / meta) * 100 : 0));
+
+  const maxGrafico = Math.max(
+    1,
+    ...enriquecidos.flatMap((i) => [Number(i.ganho), Number(i.gasolina) + Number(i.manutencao)])
+  );
+
+  function salvarLancamento() {
+    const novo = {
+      id: Date.now(),
+      data,
+      ganho: Number(ganho || 0),
+      gasolina: Number(gasolina || 0),
+      manutencao: Number(manutencao || 0),
+      km: Number(km || 0),
+    };
+
+    setLancamentos((prev) => [novo, ...prev]);
+    setGanho("");
+    setGasolina("");
+    setManutencao("");
+    setKm("");
+    setData(new Date().toISOString().slice(0, 10));
+  }
+
+  function excluirLancamento(id) {
+    setLancamentos((prev) => prev.filter((item) => item.id !== id));
   }
 
   return (
@@ -50,41 +105,83 @@ export default function App() {
         <div className="premium-box">
           <div>
             <h2>Versão Premium</h2>
-            <p>Libere relatórios, metas e visual profissional.</p>
+            <p>Gráficos, histórico e dados salvos automático.</p>
           </div>
-          <button className="btn-secondary">Liberar demonstração</button>
-        </div>
-
-        <div className="tabs">
-          <button className="tab active">Início</button>
-          <button className="tab">Lançar</button>
-          <button className="tab">Relatórios</button>
-          <button className="tab">Config</button>
+          <button className="btn-secondary">Plano ativo</button>
         </div>
 
         <div className="cards-grid">
           <div className="card">
-            <span>Lucro atual</span>
-            <strong>R$ {lucro.toFixed(2)}</strong>
+            <span>Lucro total</span>
+            <strong>{moeda(totais.lucro)}</strong>
           </div>
           <div className="card">
             <span>KM rodado</span>
-            <strong>{Number(km || 0)}</strong>
+            <strong>{totais.kmRodado}</strong>
           </div>
           <div className="card">
             <span>Ganhos</span>
-            <strong>R$ {Number(ganho || 0).toFixed(2)}</strong>
+            <strong>{moeda(totais.ganhos)}</strong>
           </div>
           <div className="card">
             <span>Gastos</span>
-            <strong>
-              R$ {(Number(gasolina || 0) + Number(manutencao || 0)).toFixed(2)}
-            </strong>
+            <strong>{moeda(totais.gastos)}</strong>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h2>Meta mensal</h2>
+          <label>Nome do usuário</label>
+          <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
+
+          <label>Meta em reais</label>
+          <input
+            className="input"
+            type="number"
+            value={meta}
+            onChange={(e) => setMeta(Number(e.target.value || 0))}
+          />
+
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progresso}%` }} />
+          </div>
+
+          <div className="meta-row">
+            <span>{moeda(totais.lucro)}</span>
+            <span>{moeda(meta)}</span>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h2>Gráfico de ganhos x gastos</h2>
+          <div className="mini-chart">
+            {enriquecidos.slice(0, 6).map((item) => (
+              <div className="mini-chart-item" key={item.id}>
+                <div className="bars">
+                  <div
+                    className="bar ganhos"
+                    style={{ height: `${(Number(item.ganho) / maxGrafico) * 120}px` }}
+                    title={`Ganhos: ${moeda(item.ganho)}`}
+                  />
+                  <div
+                    className="bar gastos"
+                    style={{
+                      height: `${((Number(item.gasolina) + Number(item.manutencao)) / maxGrafico) * 120}px`,
+                    }}
+                    title={`Gastos: ${moeda(Number(item.gasolina) + Number(item.manutencao))}`}
+                  />
+                </div>
+                <span>{formatarData(item.data).slice(0, 5)}</span>
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="panel">
           <h2>Novo lançamento</h2>
+
+          <label>Data</label>
+          <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
 
           <label>Ganho</label>
           <input
@@ -122,7 +219,48 @@ export default function App() {
             onChange={(e) => setKm(e.target.value)}
           />
 
-          <button className="btn-primary">Salvar lançamento</button>
+          <button className="btn-primary" onClick={salvarLancamento}>
+            Salvar lançamento
+          </button>
+        </div>
+
+        <div className="panel">
+          <h2>Histórico de lançamentos</h2>
+
+          <div className="history-list">
+            {enriquecidos.map((item) => (
+              <div className="history-card" key={item.id}>
+                <div className="history-top">
+                  <div>
+                    <div className="history-date">{formatarData(item.data)}</div>
+                    <div className="history-sub">KM: {item.km}</div>
+                  </div>
+                  <button className="btn-danger" onClick={() => excluirLancamento(item.id)}>
+                    Excluir
+                  </button>
+                </div>
+
+                <div className="history-grid">
+                  <div className="mini-box">
+                    <span>Ganho</span>
+                    <strong>{moeda(item.ganho)}</strong>
+                  </div>
+                  <div className="mini-box">
+                    <span>Gasolina</span>
+                    <strong>{moeda(item.gasolina)}</strong>
+                  </div>
+                  <div className="mini-box">
+                    <span>Manutenção</span>
+                    <strong>{moeda(item.manutencao)}</strong>
+                  </div>
+                  <div className="mini-box">
+                    <span>Lucro</span>
+                    <strong>{moeda(item.lucro)}</strong>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
