@@ -550,30 +550,4 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            <div className="panel">
-              <div className="section-title">Conta</div>
-              <div className="account-box">
-                <div><strong>Usuário:</strong> {user.name}</div>
-                <div><strong>E-mail:</strong> {user.email || "Sem e-mail"}</div>
-                <div><strong>Status:</strong> {premium ? "Premium liberado" : "Básico"}</div>
-              </div>
-
-              <button
-                className="secondary-btn full"
-                onClick={() => {
-                  localStorage.removeItem("entregafacil_user");
-                  setUser(null);
-                }}
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+             
