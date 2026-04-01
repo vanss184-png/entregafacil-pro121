@@ -26,6 +26,8 @@ function formatarData(data) {
 }
 
 export default function App() {
+  const [aba, setAba] = useState("inicio");
+
   const [email, setEmail] = useState("");
   const [emailLogado, setEmailLogado] = useState(() => localStorage.getItem("app_email") || "");
   const [erroLogin, setErroLogin] = useState("");
@@ -38,6 +40,7 @@ export default function App() {
   const [manutencao, setManutencao] = useState("");
   const [km, setKm] = useState("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
 
   const [lancamentos, setLancamentos] = useState(() => {
     const salvo = localStorage.getItem("app_lancamentos");
@@ -68,23 +71,70 @@ export default function App() {
     return lancamentos.map((item) => ({
       ...item,
       lucro: Number(item.ganho) - Number(item.gasolina) - Number(item.manutencao),
+      gastos: Number(item.gasolina) + Number(item.manutencao),
     }));
   }, [lancamentos]);
 
+  const filtrados = useMemo(() => {
+    const hoje = new Date();
+    const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const seteDiasAtras = new Date();
+    seteDiasAtras.setDate(hoje.getDate() - 6);
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(hoje.getDate() - 29);
+
+    return enriquecidos.filter((item) => {
+      const dataItem = new Date(`${item.data}T00:00:00`);
+
+      if (filtroPeriodo === "hoje") {
+        return dataItem >= inicioHoje;
+      }
+
+      if (filtroPeriodo === "7dias") {
+        return dataItem >= seteDiasAtras;
+      }
+
+      if (filtroPeriodo === "30dias") {
+        return dataItem >= trintaDiasAtras;
+      }
+
+      if (filtroPeriodo === "mes") {
+        return (
+          dataItem.getMonth() === hoje.getMonth() &&
+          dataItem.getFullYear() === hoje.getFullYear()
+        );
+      }
+
+      return true;
+    });
+  }, [enriquecidos, filtroPeriodo]);
+
   const totais = useMemo(() => {
-    const ganhos = enriquecidos.reduce((a, i) => a + Number(i.ganho), 0);
-    const gastos = enriquecidos.reduce((a, i) => a + Number(i.gasolina) + Number(i.manutencao), 0);
-    const lucro = enriquecidos.reduce((a, i) => a + Number(i.lucro), 0);
-    const kmRodado = enriquecidos.reduce((a, i) => a + Number(i.km), 0);
+    const ganhos = filtrados.reduce((a, i) => a + Number(i.ganho), 0);
+    const gastos = filtrados.reduce((a, i) => a + Number(i.gastos), 0);
+    const lucro = filtrados.reduce((a, i) => a + Number(i.lucro), 0);
+    const kmRodado = filtrados.reduce((a, i) => a + Number(i.km), 0);
     return { ganhos, gastos, lucro, kmRodado };
-  }, [enriquecidos]);
+  }, [filtrados]);
 
   const progresso = Math.max(0, Math.min(100, meta ? (totais.lucro / meta) * 100 : 0));
 
   const maxGrafico = Math.max(
     1,
-    ...enriquecidos.flatMap((i) => [Number(i.ganho), Number(i.gasolina) + Number(i.manutencao)])
+    ...filtrados.flatMap((i) => [Number(i.ganho), Number(i.gastos), Number(i.lucro)])
   );
+
+  const melhorLancamento = useMemo(() => {
+    if (!filtrados.length) return null;
+    return [...filtrados].sort((a, b) => b.lucro - a.lucro)[0];
+  }, [filtrados]);
+
+  const piorLancamento = useMemo(() => {
+    if (!filtrados.length) return null;
+    return [...filtrados].sort((a, b) => a.lucro - b.lucro)[0];
+  }, [filtrados]);
+
+  const mediaLucro = filtrados.length ? totais.lucro / filtrados.length : 0;
 
   function entrar() {
     const emailTratado = email.trim().toLowerCase();
@@ -130,6 +180,7 @@ export default function App() {
     setManutencao("");
     setKm("");
     setData(new Date().toISOString().slice(0, 10));
+    setAba("inicio");
   }
 
   function excluirLancamento(id) {
@@ -187,166 +238,243 @@ export default function App() {
         <div className="premium-box">
           <div>
             <h2>Versão Premium</h2>
-            <p>Gráficos, histórico e dados salvos automático.</p>
+            <p>Gráficos, relatórios e dados salvos automático.</p>
           </div>
           <button className="btn-secondary" onClick={sair}>
             Sair
           </button>
         </div>
 
-        <div className="cards-grid">
-          <div className="card">
-            <span>Lucro total</span>
-            <strong>{moeda(totais.lucro)}</strong>
-          </div>
-          <div className="card">
-            <span>KM rodado</span>
-            <strong>{totais.kmRodado}</strong>
-          </div>
-          <div className="card">
-            <span>Ganhos</span>
-            <strong>{moeda(totais.ganhos)}</strong>
-          </div>
-          <div className="card">
-            <span>Gastos</span>
-            <strong>{moeda(totais.gastos)}</strong>
-          </div>
-        </div>
-
-        <div className="panel">
-          <h2>Meta mensal</h2>
-
-          <label>Nome do usuário</label>
-          <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
-
-          <label>Meta em reais</label>
-          <input
-            className="input"
-            type="number"
-            value={meta}
-            onChange={(e) => setMeta(Number(e.target.value || 0))}
-          />
-
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${progresso}%` }} />
-          </div>
-
-          <div className="meta-row">
-            <span>{moeda(totais.lucro)}</span>
-            <span>{moeda(meta)}</span>
-          </div>
-        </div>
-
-        <div className="panel">
-          <h2>Gráfico de ganhos x gastos</h2>
-          <div className="mini-chart">
-            {enriquecidos.slice(0, 6).map((item) => (
-              <div className="mini-chart-item" key={item.id}>
-                <div className="bars">
-                  <div
-                    className="bar ganhos"
-                    style={{ height: `${(Number(item.ganho) / maxGrafico) * 120}px` }}
-                    title={`Ganhos: ${moeda(item.ganho)}`}
-                  />
-                  <div
-                    className="bar gastos"
-                    style={{
-                      height: `${((Number(item.gasolina) + Number(item.manutencao)) / maxGrafico) * 120}px`,
-                    }}
-                    title={`Gastos: ${moeda(Number(item.gasolina) + Number(item.manutencao))}`}
-                  />
-                </div>
-                <span>{formatarData(item.data).slice(0, 5)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="panel">
-          <h2>Novo lançamento</h2>
-
-          <label>Data</label>
-          <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
-
-          <label>Ganho</label>
-          <input
-            className="input"
-            type="number"
-            placeholder="Digite o ganho"
-            value={ganho}
-            onChange={(e) => setGanho(e.target.value)}
-          />
-
-          <label>Gasolina</label>
-          <input
-            className="input"
-            type="number"
-            placeholder="Digite o gasto com gasolina"
-            value={gasolina}
-            onChange={(e) => setGasolina(e.target.value)}
-          />
-
-          <label>Manutenção</label>
-          <input
-            className="input"
-            type="number"
-            placeholder="Digite a manutenção"
-            value={manutencao}
-            onChange={(e) => setManutencao(e.target.value)}
-          />
-
-          <label>KM</label>
-          <input
-            className="input"
-            type="number"
-            placeholder="Digite o km rodado"
-            value={km}
-            onChange={(e) => setKm(e.target.value)}
-          />
-
-          <button className="btn-primary" onClick={salvarLancamento}>
-            Salvar lançamento
+        <div className="tabs">
+          <button
+            className={aba === "inicio" ? "tab active" : "tab"}
+            onClick={() => setAba("inicio")}
+          >
+            Início
+          </button>
+          <button
+            className={aba === "lancar" ? "tab active" : "tab"}
+            onClick={() => setAba("lancar")}
+          >
+            Lançar
+          </button>
+          <button
+            className={aba === "relatorios" ? "tab active" : "tab"}
+            onClick={() => setAba("relatorios")}
+          >
+            Relatórios
           </button>
         </div>
 
-        <div className="panel">
-          <h2>Histórico de lançamentos</h2>
+        {aba === "inicio" && (
+          <>
+            <div className="cards-grid">
+              <div className="card">
+                <span>Lucro total</span>
+                <strong>{moeda(totais.lucro)}</strong>
+              </div>
+              <div className="card">
+                <span>KM rodado</span>
+                <strong>{totais.kmRodado}</strong>
+              </div>
+              <div className="card">
+                <span>Ganhos</span>
+                <strong>{moeda(totais.ganhos)}</strong>
+              </div>
+              <div className="card">
+                <span>Gastos</span>
+                <strong>{moeda(totais.gastos)}</strong>
+              </div>
+            </div>
 
-          <div className="history-list">
-            {enriquecidos.map((item) => (
-              <div className="history-card" key={item.id}>
-                <div className="history-top">
-                  <div>
-                    <div className="history-date">{formatarData(item.data)}</div>
-                    <div className="history-sub">KM: {item.km}</div>
+            <div className="panel">
+              <h2>Meta mensal</h2>
+
+              <label>Nome do usuário</label>
+              <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
+
+              <label>Meta em reais</label>
+              <input
+                className="input"
+                type="number"
+                value={meta}
+                onChange={(e) => setMeta(Number(e.target.value || 0))}
+              />
+
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progresso}%` }} />
+              </div>
+
+              <div className="meta-row">
+                <span>{moeda(totais.lucro)}</span>
+                <span>{moeda(meta)}</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {aba === "lancar" && (
+          <>
+            <div className="panel">
+              <h2>Novo lançamento</h2>
+
+              <label>Data</label>
+              <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
+
+              <label>Ganho</label>
+              <input className="input" type="number" value={ganho} onChange={(e) => setGanho(e.target.value)} />
+
+              <label>Gasolina</label>
+              <input className="input" type="number" value={gasolina} onChange={(e) => setGasolina(e.target.value)} />
+
+              <label>Manutenção</label>
+              <input className="input" type="number" value={manutencao} onChange={(e) => setManutencao(e.target.value)} />
+
+              <label>KM</label>
+              <input className="input" type="number" value={km} onChange={(e) => setKm(e.target.value)} />
+
+              <button className="btn-primary" onClick={salvarLancamento}>
+                Salvar lançamento
+              </button>
+            </div>
+
+            <div className="panel">
+              <h2>Histórico de lançamentos</h2>
+
+              <div className="history-list">
+                {lancamentos.map((item) => {
+                  const lucro = Number(item.ganho) - Number(item.gasolina) - Number(item.manutencao);
+
+                  return (
+                    <div className="history-card" key={item.id}>
+                      <div className="history-top">
+                        <div>
+                          <div className="history-date">{formatarData(item.data)}</div>
+                          <div className="history-sub">KM: {item.km}</div>
+                        </div>
+                        <button className="btn-danger" onClick={() => excluirLancamento(item.id)}>
+                          Excluir
+                        </button>
+                      </div>
+
+                      <div className="history-grid">
+                        <div className="mini-box">
+                          <span>Ganho</span>
+                          <strong>{moeda(item.ganho)}</strong>
+                        </div>
+                        <div className="mini-box">
+                          <span>Gasolina</span>
+                          <strong>{moeda(item.gasolina)}</strong>
+                        </div>
+                        <div className="mini-box">
+                          <span>Manutenção</span>
+                          <strong>{moeda(item.manutencao)}</strong>
+                        </div>
+                        <div className="mini-box">
+                          <span>Lucro</span>
+                          <strong>{moeda(lucro)}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {aba === "relatorios" && (
+          <>
+            <div className="panel">
+              <h2>Filtro de período</h2>
+
+              <select
+                className="input"
+                value={filtroPeriodo}
+                onChange={(e) => setFiltroPeriodo(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                <option value="hoje">Hoje</option>
+                <option value="7dias">Últimos 7 dias</option>
+                <option value="30dias">Últimos 30 dias</option>
+                <option value="mes">Mês atual</option>
+              </select>
+            </div>
+
+            <div className="cards-grid">
+              <div className="card">
+                <span>Lucro do período</span>
+                <strong>{moeda(totais.lucro)}</strong>
+              </div>
+              <div className="card">
+                <span>Média por lançamento</span>
+                <strong>{moeda(mediaLucro)}</strong>
+              </div>
+              <div className="card">
+                <span>Melhor lucro</span>
+                <strong>{melhorLancamento ? moeda(melhorLancamento.lucro) : moeda(0)}</strong>
+              </div>
+              <div className="card">
+                <span>Pior lucro</span>
+                <strong>{piorLancamento ? moeda(piorLancamento.lucro) : moeda(0)}</strong>
+              </div>
+            </div>
+
+            <div className="panel">
+              <h2>Gráfico de ganhos x gastos x lucro</h2>
+              <div className="mini-chart">
+                {filtrados.slice(0, 6).map((item) => (
+                  <div className="mini-chart-item" key={item.id}>
+                    <div className="bars triple">
+                      <div
+                        className="bar ganhos"
+                        style={{ height: `${(Number(item.ganho) / maxGrafico) * 120}px` }}
+                        title={`Ganhos: ${moeda(item.ganho)}`}
+                      />
+                      <div
+                        className="bar gastos"
+                        style={{ height: `${(Number(item.gastos) / maxGrafico) * 120}px` }}
+                        title={`Gastos: ${moeda(item.gastos)}`}
+                      />
+                      <div
+                        className="bar lucro"
+                        style={{ height: `${(Math.max(Number(item.lucro), 0) / maxGrafico) * 120}px` }}
+                        title={`Lucro: ${moeda(item.lucro)}`}
+                      />
+                    </div>
+                    <span>{formatarData(item.data).slice(0, 5)}</span>
                   </div>
-                  <button className="btn-danger" onClick={() => excluirLancamento(item.id)}>
-                    Excluir
-                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="panel">
+              <h2>Resumo do relatório</h2>
+              <div className="report-list">
+                <div className="report-row">
+                  <span>Total de lançamentos</span>
+                  <strong>{filtrados.length}</strong>
                 </div>
-
-                <div className="history-grid">
-                  <div className="mini-box">
-                    <span>Ganho</span>
-                    <strong>{moeda(item.ganho)}</strong>
-                  </div>
-                  <div className="mini-box">
-                    <span>Gasolina</span>
-                    <strong>{moeda(item.gasolina)}</strong>
-                  </div>
-                  <div className="mini-box">
-                    <span>Manutenção</span>
-                    <strong>{moeda(item.manutencao)}</strong>
-                  </div>
-                  <div className="mini-box">
-                    <span>Lucro</span>
-                    <strong>{moeda(item.lucro)}</strong>
-                  </div>
+                <div className="report-row">
+                  <span>Total ganho</span>
+                  <strong>{moeda(totais.ganhos)}</strong>
+                </div>
+                <div className="report-row">
+                  <span>Total gasto</span>
+                  <strong>{moeda(totais.gastos)}</strong>
+                </div>
+                <div className="report-row">
+                  <span>Lucro líquido</span>
+                  <strong>{moeda(totais.lucro)}</strong>
+                </div>
+                <div className="report-row">
+                  <span>Total de km</span>
+                  <strong>{totais.kmRodado}</strong>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
