@@ -348,3 +348,59 @@ label {
     align-items: stretch;
   }
 }
+.tabs {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #fed7aa;
+  border-radius: 22px;
+  padding: 8px;
+}
+
+.tab {
+  border: 0;
+  background: transparent;
+  color: #c2410c;
+  border-radius: 16px;
+  padding: 12px 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #f97316;
+  color: white;
+}
+
+.bars.triple {
+  gap: 4px;
+}
+
+.bar.lucro {
+  background: #22c55e;
+}
+
+.report-list {
+  display: grid;
+  gap: 10px;
+}
+
+.report-row {
+  background: #fff7ed;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.report-row span {
+  color: #64748b;
+}
+
+.report-row strong {
+  color: #0f172a;
+}
