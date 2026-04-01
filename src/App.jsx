@@ -3,13 +3,44 @@ import { useEffect, useMemo, useState } from "react";
 const emailsLiberados = [
   "vans.s184@gmail.com",
   "cliente1@gmail.com",
-  "dududeoliveiracosta@gmail.com",
+  "teste@teste.com",
 ];
 
+const ADICIONAL_AREA_RISCO = 45;
+const VALOR_POR_PACOTE = 2.4;
+const VALOR_POR_KM = 0.5;
+
 const initialEntries = [
-  { id: 1, data: "2026-03-25", ganho: 320, gasolina: 90, manutencao: 0, km: 86 },
-  { id: 2, data: "2026-03-26", ganho: 280, gasolina: 70, manutencao: 20, km: 74 },
-  { id: 3, data: "2026-03-27", ganho: 360, gasolina: 95, manutencao: 0, km: 91 },
+  {
+    id: 1,
+    data: "2026-03-25",
+    pacotes: 100,
+    areaRisco: true,
+    ganho: 325,
+    gasolina: 90,
+    manutencao: 0,
+    km: 80,
+  },
+  {
+    id: 2,
+    data: "2026-03-26",
+    pacotes: 90,
+    areaRisco: false,
+    ganho: 256,
+    gasolina: 70,
+    manutencao: 20,
+    km: 80,
+  },
+  {
+    id: 3,
+    data: "2026-03-27",
+    pacotes: 120,
+    areaRisco: true,
+    ganho: 373,
+    gasolina: 95,
+    manutencao: 0,
+    km: 80,
+  },
 ];
 
 function moeda(v) {
@@ -35,11 +66,12 @@ export default function App() {
   const [nome, setNome] = useState(() => localStorage.getItem("app_nome") || "");
   const [meta, setMeta] = useState(() => Number(localStorage.getItem("app_meta")) || 5000);
 
-  const [ganho, setGanho] = useState("");
+  const [pacotes, setPacotes] = useState("");
   const [gasolina, setGasolina] = useState("");
   const [manutencao, setManutencao] = useState("");
   const [km, setKm] = useState("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [areaRisco, setAreaRisco] = useState(false);
   const [filtroPeriodo, setFiltroPeriodo] = useState("todos");
 
   const [lancamentos, setLancamentos] = useState(() => {
@@ -67,6 +99,11 @@ export default function App() {
     }
   }, [emailLogado]);
 
+  const ganhoCalculado =
+    (areaRisco ? ADICIONAL_AREA_RISCO : 0) +
+    Number(pacotes || 0) * VALOR_POR_PACOTE +
+    Number(km || 0) * VALOR_POR_KM;
+
   const enriquecidos = useMemo(() => {
     return lancamentos.map((item) => ({
       ...item,
@@ -86,18 +123,9 @@ export default function App() {
     return enriquecidos.filter((item) => {
       const dataItem = new Date(`${item.data}T00:00:00`);
 
-      if (filtroPeriodo === "hoje") {
-        return dataItem >= inicioHoje;
-      }
-
-      if (filtroPeriodo === "7dias") {
-        return dataItem >= seteDiasAtras;
-      }
-
-      if (filtroPeriodo === "30dias") {
-        return dataItem >= trintaDiasAtras;
-      }
-
+      if (filtroPeriodo === "hoje") return dataItem >= inicioHoje;
+      if (filtroPeriodo === "7dias") return dataItem >= seteDiasAtras;
+      if (filtroPeriodo === "30dias") return dataItem >= trintaDiasAtras;
       if (filtroPeriodo === "mes") {
         return (
           dataItem.getMonth() === hoje.getMonth() &&
@@ -114,7 +142,9 @@ export default function App() {
     const gastos = filtrados.reduce((a, i) => a + Number(i.gastos), 0);
     const lucro = filtrados.reduce((a, i) => a + Number(i.lucro), 0);
     const kmRodado = filtrados.reduce((a, i) => a + Number(i.km), 0);
-    return { ganhos, gastos, lucro, kmRodado };
+    const totalPacotes = filtrados.reduce((a, i) => a + Number(i.pacotes || 0), 0);
+    const totalAreaRisco = filtrados.filter((i) => i.areaRisco).length;
+    return { ganhos, gastos, lucro, kmRodado, totalPacotes, totalAreaRisco };
   }, [filtrados]);
 
   const progresso = Math.max(0, Math.min(100, meta ? (totais.lucro / meta) * 100 : 0));
@@ -168,17 +198,20 @@ export default function App() {
     const novo = {
       id: Date.now(),
       data,
-      ganho: Number(ganho || 0),
+      pacotes: Number(pacotes || 0),
+      areaRisco,
+      ganho: ganhoCalculado,
       gasolina: Number(gasolina || 0),
       manutencao: Number(manutencao || 0),
       km: Number(km || 0),
     };
 
     setLancamentos((prev) => [novo, ...prev]);
-    setGanho("");
+    setPacotes("");
     setGasolina("");
     setManutencao("");
     setKm("");
+    setAreaRisco(false);
     setData(new Date().toISOString().slice(0, 10));
     setAba("inicio");
   }
@@ -237,8 +270,11 @@ export default function App() {
 
         <div className="premium-box">
           <div>
-            <h2>Versão Premium</h2>
-            <p>Gráficos, relatórios e dados salvos automático.</p>
+            <h2>Modo Shopee com Área de Risco</h2>
+            <p>
+              {moeda(VALOR_POR_PACOTE)} por pacote + {moeda(VALOR_POR_KM)} por km
+              + adicional de {moeda(ADICIONAL_AREA_RISCO)} quando houver área de risco
+            </p>
           </div>
           <button className="btn-secondary" onClick={sair}>
             Sair
@@ -282,8 +318,8 @@ export default function App() {
                 <strong>{moeda(totais.ganhos)}</strong>
               </div>
               <div className="card">
-                <span>Gastos</span>
-                <strong>{moeda(totais.gastos)}</strong>
+                <span>Pacotes</span>
+                <strong>{totais.totalPacotes}</strong>
               </div>
             </div>
 
@@ -316,22 +352,76 @@ export default function App() {
         {aba === "lancar" && (
           <>
             <div className="panel">
-              <h2>Novo lançamento</h2>
+              <h2>Novo lançamento Shopee</h2>
 
               <label>Data</label>
               <input className="input" type="date" value={data} onChange={(e) => setData(e.target.value)} />
 
-              <label>Ganho</label>
-              <input className="input" type="number" value={ganho} onChange={(e) => setGanho(e.target.value)} />
+              <label>Pacotes entregues</label>
+              <input
+                className="input"
+                type="number"
+                placeholder="Digite a quantidade de pacotes"
+                value={pacotes}
+                onChange={(e) => setPacotes(e.target.value)}
+              />
+
+              <label>KM rodado</label>
+              <input
+                className="input"
+                type="number"
+                placeholder="Digite o km rodado"
+                value={km}
+                onChange={(e) => setKm(e.target.value)}
+              />
+
+              <div className="risk-toggle">
+                <label className="risk-label">
+                  <input
+                    type="checkbox"
+                    checked={areaRisco}
+                    onChange={(e) => setAreaRisco(e.target.checked)}
+                  />
+                  <span>Recebe adicional de área de risco</span>
+                </label>
+              </div>
 
               <label>Gasolina</label>
-              <input className="input" type="number" value={gasolina} onChange={(e) => setGasolina(e.target.value)} />
+              <input
+                className="input"
+                type="number"
+                placeholder="Digite o gasto com gasolina"
+                value={gasolina}
+                onChange={(e) => setGasolina(e.target.value)}
+              />
 
               <label>Manutenção</label>
-              <input className="input" type="number" value={manutencao} onChange={(e) => setManutencao(e.target.value)} />
+              <input
+                className="input"
+                type="number"
+                placeholder="Digite a manutenção"
+                value={manutencao}
+                onChange={(e) => setManutencao(e.target.value)}
+              />
 
-              <label>KM</label>
-              <input className="input" type="number" value={km} onChange={(e) => setKm(e.target.value)} />
+              <div className="calc-preview">
+                <div className="calc-row">
+                  <span>Pacotes ({pacotes || 0} × {moeda(VALOR_POR_PACOTE)})</span>
+                  <strong>{moeda(Number(pacotes || 0) * VALOR_POR_PACOTE)}</strong>
+                </div>
+                <div className="calc-row">
+                  <span>KM ({km || 0} × {moeda(VALOR_POR_KM)})</span>
+                  <strong>{moeda(Number(km || 0) * VALOR_POR_KM)}</strong>
+                </div>
+                <div className="calc-row">
+                  <span>Área de risco</span>
+                  <strong>{areaRisco ? moeda(ADICIONAL_AREA_RISCO) : moeda(0)}</strong>
+                </div>
+                <div className="calc-total">
+                  <span>Ganho calculado automático</span>
+                  <strong>{moeda(ganhoCalculado)}</strong>
+                </div>
+              </div>
 
               <button className="btn-primary" onClick={salvarLancamento}>
                 Salvar lançamento
@@ -350,7 +440,10 @@ export default function App() {
                       <div className="history-top">
                         <div>
                           <div className="history-date">{formatarData(item.data)}</div>
-                          <div className="history-sub">KM: {item.km}</div>
+                          <div className="history-sub">
+                            Pacotes: {item.pacotes || 0} • KM: {item.km} •{" "}
+                            {item.areaRisco ? "Área de risco" : "Sem área de risco"}
+                          </div>
                         </div>
                         <button className="btn-danger" onClick={() => excluirLancamento(item.id)}>
                           Excluir
@@ -454,6 +547,14 @@ export default function App() {
                 <div className="report-row">
                   <span>Total de lançamentos</span>
                   <strong>{filtrados.length}</strong>
+                </div>
+                <div className="report-row">
+                  <span>Total de pacotes</span>
+                  <strong>{totais.totalPacotes}</strong>
+                </div>
+                <div className="report-row">
+                  <span>Rotas com área de risco</span>
+                  <strong>{totais.totalAreaRisco}</strong>
                 </div>
                 <div className="report-row">
                   <span>Total ganho</span>
