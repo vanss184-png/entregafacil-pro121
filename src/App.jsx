@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 const emailsLiberados = [
   "vans.s184@gmail.com",
   "cliente1@gmail.com",
-  "teste@teste.com",
+  "dududeoliveiracosta@gmail.com",
 ];
 
 const ADICIONAL_AREA_RISCO = 45;
